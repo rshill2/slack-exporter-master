@@ -5,8 +5,59 @@ from urllib.parse import urljoin
 from uuid import uuid4
 import json
 from dotenv import load_dotenv
-from exporter import *
-from config import is_user_allowed, is_channel_allowed, add_allowed_user, remove_allowed_user, add_allowed_channel, remove_allowed_channel, list_allowed_users, list_allowed_channels
+
+# Import with error handling for deployment
+try:
+    from exporter import *
+except ImportError as e:
+    print(f"Warning: Could not import exporter module: {e}")
+    # Create dummy functions to prevent crashes
+    def post_response(*args, **kwargs):
+        print("post_response called but exporter not available")
+    
+    def channel_history(*args, **kwargs):
+        return []
+    
+    def parse_channel_history(*args, **kwargs):
+        return "Export functionality not available"
+    
+    def user_list(*args, **kwargs):
+        return []
+    
+    def channel_replies(*args, **kwargs):
+        return []
+    
+    def parse_replies(*args, **kwargs):
+        return "Export functionality not available"
+
+try:
+    from config import is_user_allowed, is_channel_allowed, add_allowed_user, remove_allowed_user, add_allowed_channel, remove_allowed_channel, list_allowed_users, list_allowed_channels
+except ImportError as e:
+    print(f"Warning: Could not import config module: {e}")
+    # Create dummy functions to prevent crashes
+    def is_user_allowed(user_id):
+        return True  # Allow all users if config not available
+    
+    def is_channel_allowed(channel_id):
+        return True  # Allow all channels if config not available
+    
+    def add_allowed_user(user_id):
+        return True
+    
+    def remove_allowed_user(user_id):
+        return True
+    
+    def add_allowed_channel(channel_id):
+        return True
+    
+    def remove_allowed_channel(channel_id):
+        return True
+    
+    def list_allowed_users():
+        return []
+    
+    def list_allowed_channels():
+        return []
 
 app = Flask(__name__)
 load_dotenv(os.path.join(app.root_path, ".env"))

@@ -76,6 +76,36 @@ In your Render service dashboard:
 3. **Permission errors**: Ensure your Slack token has the correct scopes
 4. **File download issues**: Files are stored temporarily and auto-deleted after download
 
+### Deployment Issues
+
+**ModuleNotFoundError: No module named 'app'**
+- **Cause**: Render is looking for `app.py` instead of `bot.py`
+- **Solution**: Ensure your `render.yaml` has `startCommand: gunicorn bot:app`
+- **Alternative**: Use the provided `Procfile` instead of `render.yaml`
+
+**Import Errors**
+- **Cause**: Missing dependencies or environment variables
+- **Solution**: Run `python test_deployment.py` to check deployment readiness
+- **Check**: Ensure all required environment variables are set
+
+**Application Won't Start**
+- **Cause**: Missing SLACK_USER_TOKEN or other configuration
+- **Solution**: Set the SLACK_USER_TOKEN environment variable in Render
+- **Test**: Use the health check endpoint `/health` to verify the app is running
+
+### Testing Deployment
+
+Before deploying, run the deployment test:
+```bash
+python test_deployment.py
+```
+
+This will check:
+- All required packages are installed
+- Flask app can be created
+- Health endpoint works
+- Environment variables are set correctly
+
 ### Logs and Monitoring
 
 - View logs in the Render dashboard under your service
