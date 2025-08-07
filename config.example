@@ -1,0 +1,7 @@
+# Slack API Configuration
+# Get your token from: https://api.slack.com/apps/
+SLACK_USER_TOKEN=xoxp-your-token-here
+
+# Optional: Flask Configuration
+# FLASK_ENV=development
+# FLASK_DEBUG=True
