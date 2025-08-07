@@ -10,6 +10,20 @@ from dotenv import load_dotenv
 from pathvalidate import sanitize_filename
 from time import sleep
 
+# Import access control functions
+try:
+    from config import is_user_allowed, is_channel_allowed, get_allowed_channels
+except ImportError:
+    # If config module is not available, create dummy functions
+    def is_user_allowed(user_id):
+        return True  # Allow all users if no config
+    
+    def is_channel_allowed(channel_id):
+        return True  # Allow all channels if no config
+    
+    def get_allowed_channels():
+        return set()  # Empty set means all channels allowed
+
 # when rate-limited, add this to the wait time
 ADDITIONAL_SLEEP_TIME = 2
 
@@ -559,15 +573,29 @@ if __name__ == "__main__":
     if a.c:
         ch_id = a.ch
         if ch_id:
+            # Check if channel is allowed
+            if not is_channel_allowed(ch_id):
+                print(f"❌ Channel {ch_id} is not authorized for export")
+                continue
             ch_hist = channel_history(ch_id, oldest=a.fr, latest=a.to)
             save_channel(ch_hist, ch_id, ch_list, user_list)
         else:
+            allowed_channels = get_allowed_channels()
             for ch_id in [x["id"] for x in ch_list]:
+                # Check if channel is allowed (skip if no restrictions or if channel is in allowed list)
+                if allowed_channels and not is_channel_allowed(ch_id):
+                    print(f"⏭️  Skipping unauthorized channel: {ch_id}")
+                    continue
                 ch_hist = channel_history(ch_id, oldest=a.fr, latest=a.to)
                 save_channel(ch_hist, ch_id, ch_list, user_list)
     # elif, since we want to avoid asking for channel_history twice
     elif a.r:
+        allowed_channels = get_allowed_channels()
         for ch_id in [x["id"] for x in channel_list()]:
+            # Check if channel is allowed (skip if no restrictions or if channel is in allowed list)
+            if allowed_channels and not is_channel_allowed(ch_id):
+                print(f"⏭️  Skipping unauthorized channel: {ch_id}")
+                continue
             ch_hist = channel_history(ch_id, oldest=a.fr, latest=a.to)
             save_replies(ch_hist, ch_id, ch_list, user_list)
 

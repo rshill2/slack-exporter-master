@@ -6,6 +6,7 @@ from uuid import uuid4
 import json
 from dotenv import load_dotenv
 from exporter import *
+from config import is_user_allowed, is_channel_allowed, add_allowed_user, remove_allowed_user, add_allowed_channel, remove_allowed_channel, list_allowed_users, list_allowed_channels
 
 app = Flask(__name__)
 load_dotenv(os.path.join(app.root_path, ".env"))
@@ -28,8 +29,19 @@ def export_channel():
         ch_name = data["channel_name"]
         response_url = data["response_url"]
         command_args = data["text"]
+        user_id = data["user_id"]
     except KeyError as e:
         return Response(f"Sorry! I got an unexpected response (KeyError: {e})."), 200
+
+    # Check if user is allowed to use the exporter
+    if not is_user_allowed(user_id):
+        post_response(response_url, f"❌ Access denied. User {user_id} is not authorized to use this exporter.")
+        return Response(), 200
+
+    # Check if channel is allowed to be exported
+    if not is_channel_allowed(ch_id):
+        post_response(response_url, f"❌ Access denied. Channel {ch_id} is not authorized for export.")
+        return Response(), 200
 
     post_response(response_url, "Retrieving history for this channel...")
     ch_hist = channel_history(ch_id, response_url)
@@ -83,8 +95,19 @@ def export_replies():
         ch_name = data["channel_name"]
         response_url = data["response_url"]
         command_args = data["text"]
+        user_id = data["user_id"]
     except KeyError as e:
         return Response(f"Sorry! I got an unexpected response (KeyError: {e})."), 200
+
+    # Check if user is allowed to use the exporter
+    if not is_user_allowed(user_id):
+        post_response(response_url, f"❌ Access denied. User {user_id} is not authorized to use this exporter.")
+        return Response(), 200
+
+    # Check if channel is allowed to be exported
+    if not is_channel_allowed(ch_id):
+        post_response(response_url, f"❌ Access denied. Channel {ch_id} is not authorized for export.")
+        return Response(), 200
 
     post_response(response_url, "Retrieving reply threads for this channel...")
     print(ch_id)
@@ -154,6 +177,122 @@ def download(filename):
     r = app.response_class(generate(), mimetype=mimetype)
     r.headers.set("Content-Disposition", "attachment", filename=filename)
     return r
+
+
+# Management endpoints for access control
+@app.route("/admin/users", methods=["GET"])
+def list_users():
+    """List all allowed users"""
+    users = list_allowed_users()
+    return jsonify({
+        "allowed_users": users,
+        "count": len(users)
+    })
+
+
+@app.route("/admin/users", methods=["POST"])
+def add_user():
+    """Add a user to the allowed list"""
+    data = request.get_json()
+    if not data or "user_id" not in data:
+        return jsonify({"error": "user_id is required"}), 400
+    
+    user_id = data["user_id"]
+    if add_allowed_user(user_id):
+        return jsonify({
+            "success": True,
+            "message": f"User {user_id} added successfully",
+            "allowed_users": list_allowed_users()
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to add user {user_id}"
+        }), 400
+
+
+@app.route("/admin/users/<user_id>", methods=["DELETE"])
+def remove_user(user_id):
+    """Remove a user from the allowed list"""
+    if remove_allowed_user(user_id):
+        return jsonify({
+            "success": True,
+            "message": f"User {user_id} removed successfully",
+            "allowed_users": list_allowed_users()
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": f"User {user_id} not found or failed to remove"
+        }), 404
+
+
+@app.route("/admin/channels", methods=["GET"])
+def list_channels():
+    """List all allowed channels"""
+    channels = list_allowed_channels()
+    return jsonify({
+        "allowed_channels": channels,
+        "count": len(channels)
+    })
+
+
+@app.route("/admin/channels", methods=["POST"])
+def add_channel():
+    """Add a channel to the allowed list"""
+    data = request.get_json()
+    if not data or "channel_id" not in data:
+        return jsonify({"error": "channel_id is required"}), 400
+    
+    channel_id = data["channel_id"]
+    if add_allowed_channel(channel_id):
+        return jsonify({
+            "success": True,
+            "message": f"Channel {channel_id} added successfully",
+            "allowed_channels": list_allowed_channels()
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to add channel {channel_id}"
+        }), 400
+
+
+@app.route("/admin/channels/<channel_id>", methods=["DELETE"])
+def remove_channel(channel_id):
+    """Remove a channel from the allowed list"""
+    if remove_allowed_channel(channel_id):
+        return jsonify({
+            "success": True,
+            "message": f"Channel {channel_id} removed successfully",
+            "allowed_channels": list_allowed_channels()
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": f"Channel {channel_id} not found or failed to remove"
+        }), 404
+
+
+@app.route("/admin/status", methods=["GET"])
+def admin_status():
+    """Get overall status of access control"""
+    return jsonify({
+        "allowed_users": list_allowed_users(),
+        "allowed_channels": list_allowed_channels(),
+        "user_count": len(list_allowed_users()),
+        "channel_count": len(list_allowed_channels())
+    })
+
+
+@app.route("/admin", methods=["GET"])
+def admin_interface():
+    """Serve the admin interface HTML"""
+    try:
+        with open("admin_interface.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Admin interface not found", 404
 
 
 if __name__ == "__main__":

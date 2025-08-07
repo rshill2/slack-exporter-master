@@ -15,6 +15,9 @@ A similar service is provided by Slack for workspace admins at [https://my.slack
 - ✅ Slack bot with slash commands
 - ✅ Standalone command-line tool
 - ✅ Ready for Render deployment
+- ✅ Access control for users and channels
+- ✅ Web-based admin interface
+- ✅ Command-line management tools
 
 ## Quick Start (Render Deployment)
 
@@ -112,12 +115,62 @@ The application can be deployed to any platform that supports Python web applica
 - Test Slack integration with ngrok
 - Verify file downloads work correctly
 
+## Access Control
+
+The application includes comprehensive access control to restrict which users and channels can be exported:
+
+### User Management
+- Only specific users can use the export commands
+- User IDs must be added to the allowed list
+- Format: `U097LRDRB8F` (starts with 'U')
+
+### Channel Management
+- Only specific channels can be exported
+- Channel IDs must be added to the allowed list
+- Format: `C099EEMH26N` (starts with 'C')
+
+### Management Methods
+
+**Command Line:**
+```bash
+# List all allowed users and channels
+python manage_access.py --list
+
+# Add a user
+python manage_access.py --add-user U097LRDRB8F
+
+# Add a channel
+python manage_access.py --add-channel C099EEMH26N
+
+# Remove a user
+python manage_access.py --remove-user U097LRDRB8F
+
+# Remove a channel
+python manage_access.py --remove-channel C099EEMH26N
+```
+
+**Web Interface:**
+- Visit `/admin` on your deployed application
+- Use the web interface to manage users and channels
+- Real-time updates and status monitoring
+
+**API Endpoints:**
+- `GET /admin/users` - List allowed users
+- `POST /admin/users` - Add a user
+- `DELETE /admin/users/<user_id>` - Remove a user
+- `GET /admin/channels` - List allowed channels
+- `POST /admin/channels` - Add a channel
+- `DELETE /admin/channels/<channel_id>` - Remove a channel
+- `GET /admin/status` - Get overall status
+
 ## Security Considerations
 
 - Never commit your Slack token to version control
 - Files are automatically deleted after download
 - Basic input validation is implemented
 - Rate limiting is handled automatically
+- Access control restricts users and channels
+- Configuration files are stored securely
 
 ## Contributing
 
